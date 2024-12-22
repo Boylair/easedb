@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "easedb"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
-    {name = "Your Name <your.email@example.com>"}
+    {name = "Boylair <boylair@tuta.io>"}
 ]
 description = "Fast, simple, reliable — Database management made easy"
 readme = "README.md"
@@ -18,8 +18,8 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/easedb"
-"Bug Tracker" = "https://github.com/yourusername/easedb/issues"
+"Homepage" = "https://github.com/Boylair/easedb"
+"Bug Tracker" = "https://github.com/Boylair/easedb/issues"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
