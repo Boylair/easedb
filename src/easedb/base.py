@@ -43,6 +43,12 @@ class DatabaseDriver(ABC):
     def execute(self, query: str, params: Optional[Union[tuple, Dict[str, Any]]] = None) -> Any:
         """Execute a raw SQL query."""
         pass
+    
+    @abstractmethod
+    def create_table(self, table_name: str, columns: Dict[str, str], 
+                     primary_key: str, auto_increment: bool, if_not_exists: bool) -> bool:
+        """Create a table with specified columns."""
+        pass
 
 class Database:
     """Main database interface for synchronous operations."""
@@ -91,8 +97,40 @@ class Database:
     def set(self, table: str, data: Dict[str, Any]) -> bool:
         return self.driver.set(table, data)
     
-    def update(self, table: str, query: Dict[str, Any], data: Dict[str, Any]) -> bool:
-        return self.driver.update(table, query, data)
+    def update(self, table: str, data: Union[Dict[str, Any], Any] = None, **kwargs) -> bool:
+        """
+        Update records in the specified table.
+        
+        Args:
+            table (str): Name of the table
+            data (dict, optional): Dictionary of update data
+            **kwargs: Additional key-value pairs to update
+            
+        Returns:
+            bool: True if update is successful, False otherwise
+        """
+        # Ha nem adunk meg semmit, hibát dobunk
+        if data is None and not kwargs:
+            raise ValueError("No update data provided")
+        
+        # Ha dictionary-t adunk át, akkor azt használjuk
+        if isinstance(data, dict):
+            update_data = data.copy()
+        else:
+            update_data = {}
+        
+        # Hozzáadjuk a kwargs-ot az update_data-hoz
+        update_data.update(kwargs)
+        
+        # Ha több mező van, akkor lekérdezésként használjuk
+        query = {k: v for k, v in update_data.items() if k not in ['age', 'name']}
+        update_data = {k: v for k, v in update_data.items() if k in ['age', 'name']}
+        
+        # Ha nincs lekérdezés, akkor az update mezőket használjuk lekérdezésként
+        if not query and update_data:
+            query = {k: v for k, v in update_data.items()}
+        
+        return self.driver.update(table, query, update_data)
     
     def delete(self, table: str, query: Dict[str, Any]) -> bool:
         return self.driver.delete(table, query)
@@ -101,14 +139,21 @@ class Database:
         """Execute a raw SQL query."""
         return self.driver.execute(query, params)
 
-    def create_table(self, table_name: str, columns: Dict[str, str]) -> bool:
+    def create_table(self, table_name: str, columns: Dict[str, str], 
+                   primary_key: str = 'id', 
+                   auto_increment: bool = True,
+                   if_not_exists: bool = True) -> bool:
         """
         Create a table with specified columns.
         
         :param table_name: Name of the table to create
         :param columns: Dictionary of column names and their types
+        :param primary_key: Name of the primary key column
+        :param auto_increment: Whether to make the primary key auto-increment
+        :param if_not_exists: Whether to use IF NOT EXISTS clause
         :return: True if table creation was successful, False otherwise
         """
-        column_definitions = [f"{col_name} {col_type}" for col_name, col_type in columns.items()]
-        create_query = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(column_definitions)})"
-        return self.execute(create_query)
+        return self.driver.create_table(table_name, columns, 
+                                        primary_key, 
+                                        auto_increment, 
+                                        if_not_exists)

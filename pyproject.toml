@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "easedb"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
     {name = "Boylair <boylair@tuta.io>"}
 ]
@@ -43,3 +43,6 @@ exclude_lines = [
     "raise NotImplementedError",
     "pass"
 ]
+
+[project.scripts]
+easedb = "easedb.cli.main:main"

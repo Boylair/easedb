@@ -1,1 +1,1 @@
-# Teszt csomag inicializálása
+# Tests

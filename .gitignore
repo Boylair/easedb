@@ -56,3 +56,8 @@ htmlcov/
 *.pyo
 *.pyd
 
+# Other
+build_and_install.bat
+manual_tests
+/src/easedb/cli
+/src/easedb/core
