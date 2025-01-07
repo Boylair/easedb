@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from ..utils import row_to_dict, get_columns_from_cursor
 
+from ....logger import logger
+
 def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Get all records from SQLite database synchronously.
@@ -18,18 +20,23 @@ def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]]
             # If no query is provided, fetch all records
             sql = f"SELECT * FROM {table}"
             params = []
+            logger.debug(f"Executing query: {sql} with no parameters")
         else:
             # Construct a parameterized query with the provided conditions
             where_clause = ' AND '.join([f"{k} = ?" for k in query.keys()])
             sql = f"SELECT * FROM {table} WHERE {where_clause}"
             params = list(query.values())
+            logger.debug(f"Executing query: {sql} with parameters: {params}")
         
         cursor = connection.execute(sql, params)
         columns = get_columns_from_cursor(cursor)
         rows = cursor.fetchall()
-        
-        return [row_to_dict(row, columns) for row in rows]
+        result = [row_to_dict(row, columns) for row in rows]
+
+        logger.debug(f"Query result: {result}")
+
+        return result
             
     except Exception as e:
-        print(f"Error getting all records: {e}")
+        logger.error(f"Error getting all records from {table}. SQL: {sql}, Parameters: {params}, Error: {str(e)}")
         return []

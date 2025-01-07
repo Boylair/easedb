@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+from ....logger import logger
+
 def create_table(connection: Any, table: str, schema: Dict[str, str], 
                  primary_key: str = 'id', 
                  auto_increment: bool = True,
@@ -42,6 +44,8 @@ def create_table(connection: Any, table: str, schema: Dict[str, str],
             sql = f"CREATE TABLE IF NOT EXISTS `{table}` ({columns_str})"
         else:
             sql = f"CREATE TABLE `{table}` ({columns_str})"
+
+        logger.info(f"Executing SQL: {sql}")
         
         # Execute table creation
         cursor.execute(sql)
@@ -53,4 +57,5 @@ def create_table(connection: Any, table: str, schema: Dict[str, str],
     except Exception:
         if connection:
             connection.rollback()
+        logger.error(f"Error creating table {table}: {e}")
         return False

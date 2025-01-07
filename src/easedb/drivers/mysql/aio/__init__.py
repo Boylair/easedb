@@ -12,6 +12,7 @@ from .update import update_record
 from .delete import delete_record
 from .execute import execute_query
 from .create_table import create_table
+from ....logger import logger
 
 class AsyncMySQLDriver(AsyncDatabaseDriver):
     """Asynchronous MySQL database driver."""
@@ -28,8 +29,10 @@ class AsyncMySQLDriver(AsyncDatabaseDriver):
             if not self.connected:
                 self.connection = await aiomysql.connect(**self.connection_params)
                 self.connected = True
+                logger.info("Successfully connected to the MySQL database.")
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error connecting to the MySQL database: {e}")
             return False
     
     async def disconnect(self) -> bool:
@@ -38,8 +41,10 @@ class AsyncMySQLDriver(AsyncDatabaseDriver):
             if self.connected and self.connection:
                 self.connection.close()
                 self.connected = False
+                logger.info("Successfully disconnected from the MySQL database.")
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error disconnecting from the MySQL database: {e}")
             return False
     
     async def get(self, table: str, query: Dict[str, Any], 

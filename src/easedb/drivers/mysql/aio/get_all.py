@@ -3,6 +3,8 @@
 from typing import Any, Dict, List, Optional
 import traceback
 
+from ....logger import logger
+
 async def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Retrieve all records from a MySQL database table asynchronously.
@@ -30,9 +32,10 @@ async def get_all_records(connection: Any, table: str, query: Optional[Dict[str,
             
             if conditions:
                 sql += " WHERE " + " AND ".join(conditions)
+
         
-        print(f"Executing SQL: {sql}")
-        print(f"Query parameters: {params}")
+        logger.debug(f"Executing SQL: {sql} | Parameters: {params}")
+        #         
         
         # Execute query
         if params:
@@ -43,14 +46,14 @@ async def get_all_records(connection: Any, table: str, query: Optional[Dict[str,
         # Fetch all records
         records = await cursor.fetchall()
         
-        print(f"Retrieved {len(records)} records")
+        logger.debug(f"Retrieved {len(records)} records")
         
         return records
     
     except Exception as e:
         # Detailed error logging
-        print(f"Error in get_all_records: {e}")
-        traceback.print_exc()
+        logger.error(f"Error in get_all_records: {e}")
+        logger.error(traceback.format_exc())
         return []
     finally:
         # Ensure cursor is closed

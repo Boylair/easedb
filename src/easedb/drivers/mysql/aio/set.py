@@ -4,6 +4,9 @@ from typing import Any, Dict
 
 from ..utils import format_placeholders
 
+from ....logger import logger
+
+
 async def set_record(connection: Any, table: str, data: Dict[str, Any]) -> bool:
     """Insert a record into MySQL database asynchronously."""
     try:
@@ -12,6 +15,8 @@ async def set_record(connection: Any, table: str, data: Dict[str, Any]) -> bool:
         placeholders = format_placeholders(data)
         sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
         
+        logger.info(f"Executing SQL: {sql} | Data: {data}")
+
         await cursor.execute(sql, list(data.values()))
         await connection.commit()
         await cursor.close()
@@ -21,5 +26,5 @@ async def set_record(connection: Any, table: str, data: Dict[str, Any]) -> bool:
     except Exception as e:
         if connection:
             await connection.rollback()
-        print(f"Error inserting record: {e}")
+        logger.error(f"Error inserting record into {table}: {e}")
         return False

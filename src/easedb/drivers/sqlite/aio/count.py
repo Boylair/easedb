@@ -3,6 +3,8 @@
 from typing import Dict, Any, Optional
 import aiosqlite
 
+from ....logger import logger
+
 async def count_records(connection: aiosqlite.Connection, table: str, query: Optional[Dict[str, Any]] = None) -> int:
     """
     Asynchronously count records in a SQLite database table.
@@ -15,18 +17,26 @@ async def count_records(connection: aiosqlite.Connection, table: str, query: Opt
     try:
         # If no query is provided, count all records
         if query is None:
-            async with connection.execute(f"SELECT COUNT(*) FROM {table}") as cursor:
-                result = await cursor.fetchone()
-                return result[0] if result else 0
+            # If no query is provided, count all records
+            sql = f"SELECT COUNT(*) FROM {table}"
+            params = []
+        else:
+            # Construct a parameterized query with the provided conditions
+            where_clauses = [f"{k} = ?" for k in query.keys()]
+            sql = f"SELECT COUNT(*) FROM {table} WHERE {' AND '.join(where_clauses)}"
+            params = list(query.values())        
+
+        logger.debug(f"Executing count query: {sql} | Parameters: {params}")
         
-        # Construct a parameterized query with the provided conditions
-        where_clauses = [f"{k} = ?" for k in query.keys()]
-        count_query = f"SELECT COUNT(*) FROM {table} WHERE {' AND '.join(where_clauses)}"
-        
-        async with connection.execute(count_query, list(query.values())) as cursor:
+        async with connection.execute(sql, params) as cursor:
             result = await cursor.fetchone()
-            return result[0] if result else 0
-    
+            count = result[0] if result else 0
+            
+            # Log the result
+            logger.info(f"Count query result: {count} record(s) found in table '{table}'.")
+            return count
+
     except Exception as e:
-        print(f"Error counting records: {e}")
+        logger.error(f"Error counting records in table '{table}': {e}")
+        logger.debug(f"Failed query: {sql if 'sql' in locals() else 'Unknown'} | Parameters: {params if 'params' in locals() else 'Unknown'}")
         return 0

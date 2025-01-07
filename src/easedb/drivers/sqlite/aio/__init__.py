@@ -13,6 +13,7 @@ from .delete import delete_record
 from .execute import execute_query
 from .count import count_records
 from .create_table import create_table
+from ....logger import logger
 
 class AsyncSQLiteDriver(AsyncDatabaseDriver):
     """Asynchronous SQLite database driver."""
@@ -27,11 +28,16 @@ class AsyncSQLiteDriver(AsyncDatabaseDriver):
         """Establish connection to SQLite database asynchronously."""
         try:
             if not self.connected:
+                logger.info("Attempting to connect to SQLite database with parameters:")
+                for key, value in self.connection_params.items():
+                    if key != 'password':  # Avoid printing sensitive info
+                        logger.info(f"{key}: {value}")
                 self.connection = await aiosqlite.connect(**self.connection_params)
                 self.connected = True
+                logger.info("SQLite connection established successfully.")
             return True
         except Exception as e:
-            print(f"Error connecting to database: {e}")
+            logger.error(f"Error connecting to database: {e}")
             return False
     
     async def disconnect(self) -> bool:
@@ -40,9 +46,10 @@ class AsyncSQLiteDriver(AsyncDatabaseDriver):
             if self.connected and self.connection:
                 await self.connection.close()
                 self.connected = False
+                logger.info("SQLite connection closed successfully.")
             return True
         except Exception as e:
-            print(f"Error disconnecting from database: {e}")
+            logger.error(f"Error disconnecting from database: {e}")
             return False
     
     async def get(self, table: str, query: Dict[str, Any], 

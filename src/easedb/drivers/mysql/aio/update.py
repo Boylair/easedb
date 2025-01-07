@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+from ....logger import logger
+
 async def update_record(connection: Any, table: str, query: Dict[str, Any], data: Dict[str, Any]) -> bool:
     """Update a record in MySQL database asynchronously."""
     try:
@@ -11,6 +13,7 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         
         # Ha nincs adat, nem történik frissítés
         if not data:
+            logger.info(f"No data provided to update for table {table} with query: {query}")
             return False
         
         cursor = await connection.cursor()
@@ -23,6 +26,8 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         
         # Combine the SQL statement
         sql = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
+
+        logger.info(f"Executing SQL: {sql} | Values: {list(data.values()) + list(query.values())}")
         
         # Combine values: first update values, then query conditions
         values = list(data.values()) + list(query.values())
@@ -36,5 +41,5 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
     except Exception as e:
         if connection:
             await connection.rollback()
-        print(f"Error updating record: {e}")
+        logger.error(f"Error updating record in {table}: {e}")
         return False

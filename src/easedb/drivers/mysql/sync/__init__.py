@@ -13,6 +13,7 @@ from .update import update_record
 from .delete import delete_record
 from .execute import execute_query
 from .create_table import create_table
+from ....logger import logger
 
 class MySQLDriver(DatabaseDriver):
     """Synchronous MySQL database driver."""
@@ -47,29 +48,30 @@ class MySQLDriver(DatabaseDriver):
         """Establish connection to MySQL database."""
         try:
             if not self.connected:
+
                 # Attempt to establish connection with detailed error tracking
-                print("Attempting to connect with parameters:")
+                logger.info("Attempting to connect with parameters:")
                 for key, value in self.connection_params.items():
                     if key not in ['password']:  # Avoid printing sensitive info
-                        print(f"{key}: {value}")
+                        logger.info(f"{key}: {value}")
                 
                 self.connection = mysql.connector.connect(**self.connection_params)
                 
                 # Verify connection
                 if not self.connection.is_connected():
-                    #print("Connection failed: not connected") #debug
+                    logger.error("Connection failed: not connected")
                     return False
                 
                 self.connected = True
-                #print("Connection established successfully") #debug
+                logger.info("Connection established successfully")
             return True
         
         except mysql.connector.Error as err:
-            print(f"MySQL Connector Error: {err}")
+            logger.error(f"MySQL Connector Error: {err}")
             return False
         
         except Exception as e:
-            print(f"Unexpected connection error: {e}")
+            logger.error(f"Unexpected connection error: {e}")
             return False
     
     def disconnect(self) -> bool:
@@ -78,8 +80,10 @@ class MySQLDriver(DatabaseDriver):
             if self.connected and self.connection:
                 self.connection.close()
                 self.connected = False
+                logger.info("Connection closed successfully.")
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error disconnecting from the MySQL database: {e}")
             return False
     
     def get(self, table: str, query: Dict[str, Any], 

@@ -11,6 +11,7 @@ def update_record(connection: Any, table: str, query: Dict[str, Any], data: Dict
         
         # If no data is provided, no update will occur
         if not data:
+            logger.info(f"No data provided to update for table {table} with query: {query}")
             return False
         
         # Construct the query condition
@@ -22,15 +23,19 @@ def update_record(connection: Any, table: str, query: Dict[str, Any], data: Dict
         
         # Prepare values
         values = list(data.values()) + list(query.values())
+
+        logger.info(f"Attempting to update record in {table}. SQL: {sql}, Query Parameters: {list(query.values())}, Data: {list(data.values())}")
         
         # Execute query
         connection.execute(sql, values)
         connection.commit()
-        
+
+        logger.info(f"Successfully updated record in {table}. SQL: {sql}, Query Parameters: {list(query.values())}, Data: {list(data.values())}")
+
         return True
         
     except Exception as e:
         if connection:
             connection.rollback()
-        print(f"Error updating record: {e}")
+        logger.error(f"Error updating record in {table}. SQL: {sql}, Query Parameters: {list(query.values())}, Data: {list(data.values())}, Error: {str(e)}")
         return False

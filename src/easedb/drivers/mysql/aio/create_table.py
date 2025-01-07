@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+from ....logger import logger
+
 async def create_table(connection: Any, table: str, schema: Dict[str, str], 
                        primary_key: str = 'id', 
                        auto_increment: bool = True,
@@ -42,10 +44,15 @@ async def create_table(connection: Any, table: str, schema: Dict[str, str],
             else:
                 sql = f"CREATE TABLE `{table}` ({columns_str})"
             
+            logger.info(f"Attempting to create table {table}. SQL: {sql}")
+
             # Execute table creation
             await cursor.execute(sql)
+
+            logger.info(f"Successfully created table {table}. SQL: {sql}")
         
         return True
     
     except Exception:
+        logger.error(f"Error creating table {table}. Error: {str(e)}")
         return False

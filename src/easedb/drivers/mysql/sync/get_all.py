@@ -3,6 +3,8 @@
 from typing import Any, Dict, List, Optional
 import traceback
 
+from easedb import logger
+
 def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Retrieve all records from a MySQL database table.
@@ -19,6 +21,7 @@ def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]]
         
         # Construct base SQL query
         sql = f"SELECT * FROM {table}"
+
         
         # Add WHERE clause if query is provided
         params = []
@@ -31,8 +34,7 @@ def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]]
             if conditions:
                 sql += " WHERE " + " AND ".join(conditions)
         
-        print(f"Executing SQL: {sql}")
-        print(f"Query parameters: {params}")
+        logger.info(f"Executing SQL: {sql} | Parameters: {params}")
         
         # Execute query
         if params:
@@ -42,15 +44,15 @@ def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]]
         
         # Fetch all records
         records = cursor.fetchall()
-        
-        print(f"Retrieved {len(records)} records")
+
+        logger.info(f"Retrieved {len(records)} records from table {table}")
         
         return records
     
     except Exception as e:
         # Detailed error logging
-        print(f"Error retrieving records from table {table}: {e}")
-        print(f"Detailed traceback: {traceback.format_exc()}")
+        logger.error(f"Error retrieving records from table {table}: {e}")
+        logger.trace(f"Detailed traceback: {traceback.format_exc()}")
         
         # Return an empty list in case of error
         return []
@@ -60,5 +62,5 @@ def get_all_records(connection: Any, table: str, query: Optional[Dict[str, Any]]
         try:
             if cursor:
                 cursor.close()
-        except:
-            pass
+        except Exception as close_error:
+            logger.error(f"Error closing cursor: {close_error}")

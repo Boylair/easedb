@@ -2,6 +2,8 @@
 
 from typing import Any, Dict
 
+from ....logger import logger
+
 async def update_record(connection: Any, table: str, query: Dict[str, Any], data: Dict[str, Any]) -> bool:
     """Update a record in SQLite database asynchronously."""
     try:
@@ -22,15 +24,20 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         
         # Prepare values
         values = list(data.values()) + list(query.values())
+
+        logger.debug(f"Executing update query: {sql} | Parameters: {values}")
         
         # Execute query
         async with connection.execute(sql, values) as cursor:
             await connection.commit()
+        
+        logger.info(f"Record updated successfully in '{table}' with query: {query} and data: {data}")
         
         return True
         
     except Exception as e:
         if connection:
             await connection.rollback()
-        print(f"Error updating record: {e}")
+        logger.error(f"Error updating record in table '{table}': {e}")
+        logger.debug(f"Failed query: {sql if 'sql' in locals() else 'Unknown'} | Parameters: {values if 'values' in locals() else 'Unknown'}")        
         return False
