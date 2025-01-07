@@ -1,9 +1,9 @@
 """Asynchronous SQLite create table operation."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 async def create_table(connection: Any, table: str, schema: Dict[str, str], 
-                       primary_key: str = 'id', 
+                       primary_key: Optional[str] = None, 
                        auto_increment: bool = True,
                        if_not_exists: bool = True) -> bool:
     """
@@ -13,7 +13,7 @@ async def create_table(connection: Any, table: str, schema: Dict[str, str],
         connection: SQLite database connection
         table: Name of the table to create
         schema: Dictionary of column names and their SQL types
-        primary_key: Name of the primary key column (default 'id')
+        primary_key: Optional name of the primary key column (default None)
         auto_increment: Whether to make the primary key auto-increment (default True)
         if_not_exists: Whether to use IF NOT EXISTS clause (default True)
     
@@ -27,9 +27,12 @@ async def create_table(connection: Any, table: str, schema: Dict[str, str],
             for col_name, col_type in schema.items():
                 col_def = f"`{col_name}` {col_type}"
                 
-                # Handle primary key with auto-increment for SQLite
-                if col_name == primary_key and auto_increment:
-                    col_def += " PRIMARY KEY AUTOINCREMENT"
+                # Add PRIMARY KEY AUTOINCREMENT only if it's the primary key
+                if primary_key == col_name:
+                    if auto_increment:
+                        col_def = f"`{col_name}` INTEGER PRIMARY KEY AUTOINCREMENT"
+                    else:
+                        col_def += " PRIMARY KEY"
                 
                 column_defs.append(col_def)
             

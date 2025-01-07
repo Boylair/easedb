@@ -109,24 +109,24 @@ class Database:
         Returns:
             bool: True if update is successful, False otherwise
         """
-        # Ha nem adunk meg semmit, hibát dobunk
+        # If no update data is provided, raise an error
         if data is None and not kwargs:
             raise ValueError("No update data provided")
         
-        # Ha dictionary-t adunk át, akkor azt használjuk
+        # If a dictionary is passed, use it
         if isinstance(data, dict):
             update_data = data.copy()
         else:
             update_data = {}
         
-        # Hozzáadjuk a kwargs-ot az update_data-hoz
+        # Add kwargs to update_data
         update_data.update(kwargs)
         
-        # Ha több mező van, akkor lekérdezésként használjuk
+        # If multiple fields are present, use them as query
         query = {k: v for k, v in update_data.items() if k not in ['age', 'name']}
         update_data = {k: v for k, v in update_data.items() if k in ['age', 'name']}
         
-        # Ha nincs lekérdezés, akkor az update mezőket használjuk lekérdezésként
+        # If no query exists, use update fields as query
         if not query and update_data:
             query = {k: v for k, v in update_data.items()}
         
