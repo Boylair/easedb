@@ -70,24 +70,37 @@ class AsyncSQLiteDriver(AsyncDatabaseDriver):
                 await self.disconnect()
             return None
     
-    async def get_all(self, table: str, query: Optional[Dict[str, Any]] = None, 
-                   keep_connection_open: bool = False) -> List[Dict[str, Any]]:
-        """Get all records from SQLite database asynchronously."""
+    async def get_all(
+        self, 
+        table: str, 
+        query: Optional[Dict[str, Any]] = None, 
+        page: Optional[int] = None, 
+        page_size: Optional[int] = None,
+        keep_connection_open: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Get all records from SQLite database asynchronously with optional pagination."""
         try:
             if not self.connected:
                 await self.connect()
-        
-            result = await get_all_records(self.connection, table, query)
-        
+            
+            result = await get_all_records(
+                self.connection, 
+                table, 
+                query=query, 
+                page=page, 
+                page_size=page_size
+            )
+            
             if not keep_connection_open:
                 await self.disconnect()
-        
+            
             return result
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in get_all: {e}")
             if not keep_connection_open:
                 await self.disconnect()
             return []
-    
+                
     async def set(self, table: str, data: Dict[str, Any], 
                 keep_connection_open: bool = False) -> bool:
         """Insert a record into SQLite database asynchronously."""
@@ -106,24 +119,74 @@ class AsyncSQLiteDriver(AsyncDatabaseDriver):
                 await self.disconnect()
             return False
     
-    async def update(self, table: str, query: Dict[str, Any], data: Dict[str, Any], 
-                  keep_connection_open: bool = False) -> bool:
-        """Update a record in SQLite database asynchronously."""
+    async def update(self, table: str, *args, **kwargs) -> bool:
+        """Update a record in SQLite database asynchronously.
+        
+        Four calling styles are supported:
+        1. Separate query and data: 
+           await db.update("table", {"id": 1}, {"name": "new_name"})
+        2. Single dictionary with first key as condition:
+           await db.update("table", {"id": 1, "name": "new_name"})
+        3. Explicit query, data style:
+           await db.update("table", query={"id": 1}, data={"name": "new_name"})
+        4. Keyword arguments style:
+           await db.update(table="table", query={"id": 1}, data={"name": "new_name"})
+        """
         try:
             if not self.connected:
                 await self.connect()
-        
-            result = await update_record(self.connection, table, query, data)
-        
-            if not keep_connection_open:
-                await self.disconnect()
-        
+            
+            # Handle keyword arguments
+            if kwargs.get('table') and kwargs.get('query') and kwargs.get('data'):
+                table = kwargs['table']
+                query = kwargs['query']
+                data = kwargs['data']
+                result = await update_record(self.connection, table, query, data)
+            
+            # Handle two positional arguments
+            elif len(args) == 2 and isinstance(args[0], dict) and isinstance(args[1], dict):
+                query, data = args
+                result = await update_record(self.connection, table, query, data)
+            
+            # Handle single dictionary style
+            elif len(args) == 1 and isinstance(args[0], dict):
+                # Single dictionary style
+                data = args[0]
+                if len(data) < 2:
+                    raise ValueError("Update requires at least one condition column and one update column")
+                
+                # Use first key as query condition
+                query_key = list(data.keys())[0]
+                query_value = data[query_key]
+                
+                # Remove the query key from update data
+                update_data = {k: v for k, v in data.items() if k != query_key}
+                
+                result = await update_record(
+                    self.connection, 
+                    table, 
+                    {query_key: query_value}, 
+                    update_data
+                )
+            
+            # Handle keyword arguments query and data
+            elif kwargs.get('query') and kwargs.get('data'):
+                query = kwargs['query']
+                data = kwargs['data']
+                result = await update_record(self.connection, table, query, data)
+            
+            else:
+                raise ValueError("Invalid arguments for update method")
+            
+            await self.disconnect()
             return result
-        except Exception:
-            if not keep_connection_open:
-                await self.disconnect()
+        
+        except Exception as e:
+            logger.error(f"Error in update: {e}")
+            await self.disconnect()
             return False
-    
+            
+
     async def delete(self, table: str, query: Dict[str, Any], 
                   keep_connection_open: bool = False) -> bool:
         """Delete a record from SQLite database asynchronously."""

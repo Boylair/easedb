@@ -1,20 +1,26 @@
-"""Utility functions for MySQL driver."""
-
 from typing import Dict, Any, Optional, Tuple
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
+import re
 
 def parse_connection_string(connection_string: str) -> Dict[str, Any]:
-    """Parse MySQL connection string."""
+    """Parse MySQL or SQLite connection string."""
     parsed = urlparse(connection_string)
-    if parsed.scheme != 'mysql':
-        raise ValueError("Invalid connection string scheme. Must be 'mysql'")
     
+    if parsed.scheme not in ('mysql', 'sqlite'):
+        raise ValueError("Invalid connection string scheme. Must be 'mysql' or 'sqlite'")
+    
+    if parsed.scheme == 'sqlite':
+        return {
+            'database': unquote(parsed.path[1:] if parsed.path else ':memory:')
+        }
+    
+    # For MySQL, decode URL-encoded characters in username and password
     params = {
         'host': parsed.hostname or 'localhost',
         'port': parsed.port or 3306,
-        'user': parsed.username,
-        'password': parsed.password,
-        'db': parsed.path[1:] if parsed.path else None,  # Change 'database' to 'db' for aiomysql
+        'user': unquote(parsed.username) if parsed.username else None,
+        'password': unquote(parsed.password) if parsed.password else None,
+        'db': unquote(parsed.path[1:]) if parsed.path else None,
         'charset': 'utf8mb4'
     }
     
@@ -34,12 +40,12 @@ def parse_connection_string(connection_string: str) -> Dict[str, Any]:
                 try:
                     params[key] = int(value[0])
                 except ValueError:
-                    params[key] = value[0]
+                    params[key] = unquote(value[0])
     
     return params
 
 def row_to_dict(row: Optional[tuple], columns: tuple) -> Optional[Dict[str, Any]]:
-    """Convert MySQL row to dictionary."""
+    """Convert database row to dictionary."""
     if row is None:
         return None
     return {columns[i]: value for i, value in enumerate(row)}
@@ -48,6 +54,15 @@ def get_columns_from_cursor(cursor: Any) -> Tuple[str, ...]:
     """Get column names from cursor."""
     return tuple(col[0] for col in cursor.description)
 
-def format_placeholders(data: Dict[str, Any]) -> str:
-    """Format MySQL placeholders for parameterized queries."""
+def format_placeholders(data: Dict[str, Any], dialect: str = 'mysql') -> str:
+    """Format placeholders for parameterized queries based on database dialect."""
+    if dialect == 'sqlite':
+        return ', '.join(['?' for _ in data])
     return ', '.join(['%s' for _ in data])
+
+def escape_special_chars(value: str) -> str:
+    """Escape special characters in string values."""
+    if not isinstance(value, str):
+        return value
+    # Escape special characters that might cause issues
+    return re.sub(r'([%_\\])', r'\\\1', value)

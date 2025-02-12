@@ -11,9 +11,10 @@ async def set_record(connection: Any, table: str, data: Dict[str, Any]) -> bool:
     """Insert a record into MySQL database asynchronously."""
     try:
         cursor = await connection.cursor()
-        columns = ', '.join(data.keys())
+        # Ensure column names are properly escaped/quoted
+        columns = ', '.join([f"`{col}`" for col in data.keys()])
         placeholders = format_placeholders(data)
-        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        sql = f"INSERT INTO `{table}` ({columns}) VALUES ({placeholders})"
         
         logger.info(f"Executing SQL: {sql} | Data: {data}")
 

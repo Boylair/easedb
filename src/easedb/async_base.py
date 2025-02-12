@@ -20,9 +20,19 @@ class AsyncDatabaseDriver(ABC):
         pass
     
     @abstractmethod
-    async def get_all(self, table: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    @abstractmethod
+    async def get_all(
+        self, 
+        table: str, 
+        query: Optional[Dict[str, Any]] = None, 
+        page: Optional[int] = None, 
+        page_size: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Retrieve multiple records from the database."""
         pass
+
+
+
     
     @abstractmethod
     async def set(self, table: str, data: Dict[str, Any]) -> bool:
@@ -91,47 +101,109 @@ class AsyncDatabase:
     async def get(self, table: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return await self.driver.get(table, query)
     
-    async def get_all(self, table: str, query: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        return await self.driver.get_all(table, query)
-    
+    async def get_all(
+        self, 
+        table: str, 
+        query: Optional[Dict[str, Any]] = None, 
+        page: Optional[int] = None, 
+        page_size: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve multiple records from the database with optional pagination.
+        
+        :param table: Name of the table to retrieve records from
+        :param query: Optional dictionary of conditions to filter records
+        :param page: Optional page number for pagination (1-indexed)
+        :param page_size: Optional number of records per page
+        :return: List of records matching the query
+        """
+        return await self.driver.get_all(table, query, page, page_size)
+        
+            
     async def set(self, table: str, data: Dict[str, Any]) -> bool:
         return await self.driver.set(table, data)
     
-    async def update(self, table: str, data: Union[Dict[str, Any], Any] = None, **kwargs) -> bool:
+    async def update(self, table: str, *args, **kwargs) -> bool:
         """
         Update records in the specified table.
         
+        Supports multiple calling styles:
+        1. Separate query and data: 
+           await db.update("table", {"id": 1}, {"name": "new_name"})
+        2. Single dictionary with first key as condition:
+           await db.update("table", {"id": 1, "name": "new_name"})
+        3. Keyword arguments style:
+           await db.update("table", query={"id": 1}, data={"name": "new_name"})
+        
         Args:
             table (str): Name of the table
-            data (dict, optional): Dictionary of update data
-            **kwargs: Additional key-value pairs to update
+            *args: Positional arguments for query and data
+            **kwargs: Keyword arguments for query and data
             
         Returns:
             bool: True if update is successful, False otherwise
         """
-        # Ha nem adunk meg semmit, hibát dobunk
-        if data is None and not kwargs:
-            raise ValueError("No update data provided")
+        # Handle keyword arguments with full specification
+        if kwargs.get('table') and kwargs.get('query') and kwargs.get('data'):
+            table = kwargs['table']
+            query = kwargs['query']
+            data = kwargs['data']
+            return await self.driver.update(table, query, data)
         
-        # Ha dictionary-t adunk át, akkor azt használjuk
-        if isinstance(data, dict):
-            update_data = data.copy()
-        else:
-            update_data = {}
+        # Handle two positional arguments (query, data)
+        if len(args) == 2 and isinstance(args[0], dict) and isinstance(args[1], dict):
+            query, data = args
+            return await self.driver.update(table, query, data)
         
-        # Hozzáadjuk a kwargs-ot az update_data-hoz
-        update_data.update(kwargs)
+        # Handle single dictionary style
+        if len(args) == 1 and isinstance(args[0], dict):
+            data = args[0]
+            if len(data) < 2:
+                raise ValueError("Update requires at least one condition column and one update column")
+            
+            # Use first key as query condition
+            query_key = list(data.keys())[0]
+            query_value = data[query_key]
+            
+            # Remove the query key from update data
+            update_data = {k: v for k, v in data.items() if k != query_key}
+            
+            return await self.driver.update(table, {query_key: query_value}, update_data)
         
-        # Ha több mező van, akkor lekérdezésként használjuk
-        query = {k: v for k, v in update_data.items() if k not in ['age', 'name']}
-        update_data = {k: v for k, v in update_data.items() if k in ['age', 'name']}
+        # Handle keyword arguments query and data
+        if kwargs.get('query') and kwargs.get('data'):
+            query = kwargs['query']
+            data = kwargs['data']
+            return await self.driver.update(table, query, data)
         
-        # Ha nincs lekérdezés, akkor az update mezőket használjuk lekérdezésként
-        if not query and update_data:
-            query = {k: v for k, v in update_data.items()}
+        # Fallback for legacy behavior
+        if args or kwargs:
+            # If no update data provided, raise error
+            if not args and not kwargs:
+                raise ValueError("No update data provided")
+            
+            # If args and first arg is dict, use it as update_data
+            if args and isinstance(args[0], dict):
+                update_data = args[0].copy()
+            else:
+                update_data = {}
+            
+            # Add kwargs to update_data
+            update_data.update(kwargs)
+            
+            # If multiple fields are present, use them as query
+            query = {k: v for k, v in update_data.items() if k not in ['age', 'name']}
+            update_data = {k: v for k, v in update_data.items() if k in ['age', 'name']}
+            
+            # If no query exists, use update fields as query
+            if not query and update_data:
+                query = {k: v for k, v in update_data.items()}
+            
+            return await self.driver.update(table, query, update_data)
         
-        return await self.driver.update(table, query, update_data)
-    
+        raise ValueError("Invalid arguments for update method")
+
+
     async def delete(self, table: str, query: Dict[str, Any]) -> bool:
         return await self.driver.delete(table, query)
     

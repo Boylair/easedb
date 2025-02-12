@@ -15,12 +15,12 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         if not data:
             return False
         
-        # Construct the query condition
-        where_clause = ' AND '.join([f"{k} = ?" for k in query.keys()])
-        set_clause = ', '.join([f"{k} = ?" for k in data.keys()])
+        # Construct the query condition with double quotes for column names with spaces
+        where_clause = ' AND '.join([f'"{k}" = ?' for k in query.keys()])
+        set_clause = ', '.join([f'"{k}" = ?' for k in data.keys()])
         
-        # Construct SQL query
-        sql = f"UPDATE {table} SET {set_clause} WHERE {where_clause}"
+        # Construct SQL query with proper table and column quoting
+        sql = f'UPDATE "{table}" SET {set_clause} WHERE {where_clause}'
         
         # Prepare values
         values = list(data.values()) + list(query.values())
@@ -28,7 +28,8 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         logger.debug(f"Executing update query: {sql} | Parameters: {values}")
         
         # Execute query
-        async with connection.execute(sql, values) as cursor:
+        async with connection.cursor() as cursor:
+            await cursor.execute(sql, values)
             await connection.commit()
         
         logger.info(f"Record updated successfully in '{table}' with query: {query} and data: {data}")
@@ -41,3 +42,4 @@ async def update_record(connection: Any, table: str, query: Dict[str, Any], data
         logger.error(f"Error updating record in table '{table}': {e}")
         logger.debug(f"Failed query: {sql if 'sql' in locals() else 'Unknown'} | Parameters: {values if 'values' in locals() else 'Unknown'}")        
         return False
+        

@@ -12,6 +12,8 @@ from .update import update_record
 from .delete import delete_record
 from .execute import execute_query
 from .create_table import create_table
+from .add import add_record
+from .sub import sub_record
 from ....logger import logger
 
 class AsyncMySQLDriver(AsyncDatabaseDriver):
@@ -174,6 +176,62 @@ class AsyncMySQLDriver(AsyncDatabaseDriver):
             
             return result
         except Exception:
+            if not keep_connection_open:
+                await self.disconnect()
+            return False
+
+    async def add(self, table: str, query: Dict[str, Any], value: Union[int, float], 
+                column: str = 'value', keep_connection_open: bool = False) -> bool:
+        """
+        Add a specified value to an existing numeric column in the database.
+        
+        :param table: Name of the table
+        :param query: Dictionary specifying which record(s) to update
+        :param value: Numeric value to add to the existing value
+        :param column: Name of the column to update (default: 'value')
+        :param keep_connection_open: Whether to keep the connection open after operation
+        :return: True if update was successful, False otherwise
+        """
+        try:
+            if not self.connected:
+                await self.connect()
+            
+            result = await add_record(self.connection, table, query, value, column)
+            
+            if not keep_connection_open:
+                await self.disconnect()
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error in add method: {e}")
+            if not keep_connection_open:
+                await self.disconnect()
+            return False
+
+    async def sub(self, table: str, query: Dict[str, Any], value: Union[int, float], 
+                column: str = 'value', keep_connection_open: bool = False) -> bool:
+        """
+        Subtract a specified value from an existing numeric column in the database.
+        
+        :param table: Name of the table
+        :param query: Dictionary specifying which record(s) to update
+        :param value: Numeric value to subtract from the existing value
+        :param column: Name of the column to update (default: 'value')
+        :param keep_connection_open: Whether to keep the connection open after operation
+        :return: True if update was successful, False otherwise
+        """
+        try:
+            if not self.connected:
+                await self.connect()
+            
+            result = await sub_record(self.connection, table, query, value, column)
+            
+            if not keep_connection_open:
+                await self.disconnect()
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error in sub method: {e}")
             if not keep_connection_open:
                 await self.disconnect()
             return False
