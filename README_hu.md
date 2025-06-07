@@ -279,7 +279,7 @@ MIT
 
 ## 🌐 Hivatkozások
 
-- GitHub repo: https://github.com/Boylair/easydb 
-- Dokumentáció: https://github.com/Boylair/easydb/blob/main/docs/hu/getting_started.md
-- Hibajelentés: https://github.com/Boylair/easydb/issues
+- GitHub repo: https://github.com/Boylair/easedb 
+- Dokumentáció: https://github.com/Boylair/easedb/blob/main/docs/hu/getting_started.md
+- Hibajelentés: https://github.com/Boylair/easedb/issues
 

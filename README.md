@@ -276,7 +276,7 @@ MIT
 
 ## 🌐 Links
 
-- GitHub Repository: https://github.com/Boylair/easydb 
-- Documentation: https://github.com/Boylair/easydb/blob/main/docs/en/getting_started.md
-- Issue Tracker: https://github.com/Boylair/easydb/issues
+- GitHub Repository: https://github.com/Boylair/easedb 
+- Documentation: https://github.com/Boylair/easedb/blob/main/docs/en/getting_started.md
+- Issue Tracker: https://github.com/Boylair/easedb/issues
 

@@ -41,26 +41,3 @@ class AsyncDatabaseDriver(ABC):
         """Execute a raw SQL query asynchronously."""
         pass
     
-    @abstractmethod
-    async def add(self, table: str, query: Dict[str, Any], value: Union[int, float]) -> bool:
-        """
-        Add a specified value to an existing numeric column in the database asynchronously.
-        
-        :param table: Name of the table
-        :param query: Dictionary specifying which record(s) to update
-        :param value: Numeric value to add to the existing value
-        :return: True if update was successful, False otherwise
-        """
-        pass
-    
-    @abstractmethod
-    async def sub(self, table: str, query: Dict[str, Any], value: Union[int, float]) -> bool:
-        """
-        Subtract a specified value from an existing numeric column in the database asynchronously.
-        
-        :param table: Name of the table
-        :param query: Dictionary specifying which record(s) to update
-        :param value: Numeric value to subtract from the existing value
-        :return: True if update was successful, False otherwise
-        """
-        pass
